@@ -16,22 +16,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-java@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
 
-      - name: Install dependencies
-        run: npm ci || npm install
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Test with coverage
-        run: npm run coverage
-
-      - name: Build
-        run: npm run build
+      - name: Build and test with Maven
+        run: mvn -B verify
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master

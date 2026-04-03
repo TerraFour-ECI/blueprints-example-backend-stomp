@@ -1,6 +1,6 @@
 # backend-stomp-spring
 
-Spring Boot 3 + STOMP over WebSocket para BluePrints RT.
+Spring Boot 3 + STOMP over WebSocket for BluePrints RT.
 
 ## Run
 ```bash
