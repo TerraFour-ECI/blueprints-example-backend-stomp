@@ -1,23 +1,47 @@
-# STOMP Backend for BluePrints Real-Time Collaboration
+# STOMP Backend - Render-Safe and Production-Style Documentation
 
 <div align="center">
 
 ![Java](https://img.shields.io/badge/Java-21-007396?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![WebSocket](https://img.shields.io/badge/WebSocket-STOMP-0EA5E9?style=for-the-badge)
-![Maven](https://img.shields.io/badge/Maven-Build-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-16a34a?style=for-the-badge&logo=springboot&logoColor=white)
+![STOMP](https://img.shields.io/badge/STOMP-Topic_Broadcast-0ea5e9?style=for-the-badge)
+![Maven](https://img.shields.io/badge/Maven-Verify_CI-c2410c?style=for-the-badge&logo=apachemaven&logoColor=white)
 
-Reference Spring Boot backend used by the P4 front-end for topic-based real-time synchronization.
+Spring Boot realtime backend for Lab P4 with topic-based collaborative drawing.
 
 </div>
 
 ---
 
+## Table of contents
+
+- [Purpose](#purpose)
+- [Core capabilities](#core-capabilities)
+- [Architecture](#architecture)
+- [Message flow](#message-flow)
+- [Run guide](#run-guide)
+- [Build verification](#build-verification)
+- [Frontend integration](#frontend-integration)
+- [Screenshot evidence kit](#screenshot-evidence-kit)
+
+---
+
+## Purpose
+
+This project implements the STOMP model for realtime collaboration:
+
+- browser clients connect through WebSocket endpoint
+- clients publish draw events
+- backend routes updates to topic subscribers
+
+---
+
 ## Core capabilities
 
-- STOMP-over-WebSocket endpoint (`/ws-blueprints`).
-- Topic-based collaboration per blueprint (`/topic/blueprints.{author}.{name}`).
-- Message mapping endpoint for draw events (`/app/draw`).
+- WebSocket endpoint: `/ws-blueprints`
+- Publish endpoint: `/app/draw`
+- Topic stream: `/topic/blueprints.{author}.{name}`
+- Payload relay for live canvas synchronization
 
 ---
 
@@ -25,13 +49,21 @@ Reference Spring Boot backend used by the P4 front-end for topic-based real-time
 
 ```mermaid
 flowchart LR
-  FE[React Front-end] -->|WebSocket/STOMP| WS[/ws-blueprints]
-  FE -->|publish /app/draw| CTRL[@MessageMapping draw]
-  CTRL -->|convertAndSend| TOPIC[/topic/blueprints.author.name]
-  TOPIC --> FE
+  FE["React Frontend"] -->|"WebSocket STOMP"| WS["Endpoint /ws-blueprints"]
+  FE -->|"SEND /app/draw"| CTRL["MessageMapping draw"]
+  CTRL -->|"convertAndSend"| TOPIC["Topic /topic/blueprints.author.name"]
+  TOPIC -->|"MESSAGE updates"| FE
 ```
 
-### Message sequence
+### Why this Mermaid is render-safe
+
+- Quoted node labels avoid parser conflicts.
+- No special symbols in node IDs.
+- Connection labels are wrapped in quotes.
+
+---
+
+## Message flow
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +83,7 @@ sequenceDiagram
 
 ---
 
-## Run locally
+## Run guide
 
 ```bash
 mvn spring-boot:run
@@ -59,8 +91,8 @@ mvn spring-boot:run
 
 Defaults:
 
-- HTTP: `http://localhost:8080`
-- WS endpoint: `/ws-blueprints`
+- HTTP base: `http://localhost:8080`
+- WebSocket endpoint: `/ws-blueprints`
 
 ---
 
@@ -72,28 +104,30 @@ mvn -B verify
 
 ---
 
-## Front-end integration
+## Frontend integration
 
-In front-end `.env.local`:
+Use in front-end `.env.local`:
 
 ```bash
 VITE_STOMP_BASE=http://localhost:8080
 ```
 
-In the UI, select `STOMP (Spring)` transport.
+Then choose **STOMP (Spring)** in the front-end transport selector.
 
 ---
 
-## Screenshot evidence suggestions
+## Screenshot evidence kit
 
-1. `stomp-01-app-startup.png`
-   - Spring Boot startup logs and mapped WebSocket endpoint.
-2. `stomp-02-topic-subscription.png`
-   - Browser/network evidence of successful STOMP subscribe.
-3. `stomp-03-live-sync-two-tabs.png`
-   - Two tabs showing replicated points with STOMP mode.
-4. `stomp-04-maven-and-sonar-pass.png`
-   - Successful Maven verify + SonarCloud workflow.
+| File name | Recommended capture |
+|---|---|
+| `stomp-01-spring-startup.png` | Spring startup logs with WebSocket config |
+| `stomp-02-stomp-connect.png` | Browser network showing STOMP connection |
+| `stomp-03-topic-subscribe.png` | Subscription frame to topic |
+| `stomp-04-draw-send-frame.png` | SEND frame to /app/draw |
+| `stomp-05-topic-message-frame.png` | MESSAGE frame received from topic |
+| `stomp-06-two-tabs-sync.png` | Two tabs showing synchronized canvas |
+| `stomp-07-maven-verify-pass.png` | Maven verify successful output |
+| `stomp-08-sonar-pass.png` | SonarCloud workflow passed |
 
 ---
 
