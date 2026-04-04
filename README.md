@@ -99,4 +99,4 @@ In the UI, select `STOMP (Spring)` transport.
 
 ## License
 
-MIT
+MIT [LICENSE](LICENSE)
