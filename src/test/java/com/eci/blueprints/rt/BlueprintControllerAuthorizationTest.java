@@ -1,6 +1,7 @@
 package com.eci.blueprints.rt;
 
 import com.eci.blueprints.rt.dto.DrawEvent;
+import com.eci.blueprints.rt.dto.BlueprintUpdate;
 import com.eci.blueprints.rt.dto.Point;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,9 +90,38 @@ class BlueprintControllerAuthorizationTest {
 
   @Test
   void shouldReturnSampleBlueprintViaGet() {
-    var response = controller.get("juan", "bp-1");
+    BlueprintUpdate response = controller.get("juan", "bp-1");
     assertEquals("juan", response.author());
     assertEquals("bp-1", response.name());
     assertEquals(2, response.points().size());
+  }
+
+  @Test
+  void shouldRejectNullEvent() {
+    Principal principal = new UsernamePasswordAuthenticationToken("juan", "n/a");
+
+    controller.onDraw(null, principal);
+
+    verify(template, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
+  void shouldRejectBlankAuthorAndName() {
+    Principal principal = new UsernamePasswordAuthenticationToken("juan", "n/a");
+
+    controller.onDraw(new DrawEvent("   ", "bp-1", new Point(10, 20)), principal);
+    controller.onDraw(new DrawEvent("juan", "   ", new Point(10, 20)), principal);
+
+    verify(template, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
+  void shouldRejectWhenPrincipalIsNotAuthenticationAndNotOwner() {
+    Principal principal = () -> "mallory";
+    DrawEvent evt = new DrawEvent("juan", "bp-1", new Point(10, 20));
+
+    controller.onDraw(evt, principal);
+
+    verify(template, never()).convertAndSend(anyString(), any(Object.class));
   }
 }

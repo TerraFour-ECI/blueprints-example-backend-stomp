@@ -215,6 +215,67 @@ class JwtRoomAuthorizationInterceptorTest {
     assertDoesNotThrow(() -> interceptor.preSend(message, null));
   }
 
+  @Test
+  void shouldReturnMessageWhenAccessorIsMissing() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+    Message<String> message = MessageBuilder.withPayload("payload").build();
+
+    assertSame(message, interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldIgnoreSendCommand() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertSame(message, interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldRejectInvalidBlueprintTopicDestination() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/blueprints.");
+    accessor.setUser(new UsernamePasswordAuthenticationToken("juan", "n/a"));
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldRejectMalformedJwtClaimsAfterValidation() throws Exception {
+    HttpServer permissiveServer = HttpServer.create(new InetSocketAddress(0), 0);
+    permissiveServer.createContext("/api/blueprints", exchange -> {
+      byte[] body = "{}".getBytes(StandardCharsets.UTF_8);
+      exchange.sendResponseHeaders(200, body.length);
+      exchange.getResponseBody().write(body);
+      exchange.close();
+    });
+    permissiveServer.start();
+
+    try {
+      JwtRoomAuthorizationInterceptor interceptor = new JwtRoomAuthorizationInterceptor(new ObjectMapper());
+      ReflectionTestUtils.setField(interceptor, "jwtEnabled", true);
+      ReflectionTestUtils.setField(interceptor, "enforceOwner", true);
+      ReflectionTestUtils.setField(interceptor, "validationUrl", "http://localhost:" + permissiveServer.getAddress().getPort() + "/api/blueprints");
+      ReflectionTestUtils.setField(interceptor, "adminUsersRaw", "");
+
+      String token = "header.invalid_payload.valid-signature";
+      StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+      accessor.setNativeHeader("Authorization", "Bearer " + token);
+      accessor.setLeaveMutable(true);
+      Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+      assertThrows(IllegalStateException.class, () -> interceptor.preSend(message, null));
+    } finally {
+      permissiveServer.stop(0);
+    }
+  }
+
   private JwtRoomAuthorizationInterceptor interceptor() {
     JwtRoomAuthorizationInterceptor interceptor = new JwtRoomAuthorizationInterceptor(new ObjectMapper());
     ReflectionTestUtils.setField(interceptor, "jwtEnabled", true);
