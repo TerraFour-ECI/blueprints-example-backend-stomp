@@ -108,6 +108,9 @@ client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
 - Observability was added with structured logs for draw receive and topic broadcast.
 - WebSocket CORS is configurable in `WebSocketConfig` using `app.websocket.allowed-origins`.
 - Basic health checks are exposed through Spring Actuator (`/actuator/health`) and port config in `application.yml`.
+- JWT authorization is enforced on STOMP `CONNECT` and `SUBSCRIBE` through `JwtRoomAuthorizationInterceptor`.
+- Token validation is performed against the security backend using `app.security.jwt.validation-url`.
+- Topic ownership is enforced (`blueprints.{author}.{name}`) and draw publish authorization is checked in `BlueprintController.onDraw` using authenticated principal.
 
 ---
 
@@ -121,13 +124,19 @@ client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
 Security baseline in this flow:
 - Payload validation for inbound draw events.
 - Restricted production origins.
-- Optional JWT-based authorization by topic/blueprint ownership.
+- JWT-based authorization by topic/blueprint ownership.
 
 Practical status in this implementation:
 - ✅ Topic isolation by `blueprints.{author}.{name}` is active.
 - ✅ Event validation and logging are active.
 - ✅ Health endpoint is available through Actuator.
-- 🔜 JWT topic-level authorization is the next recommended hardening step.
+- ✅ JWT topic-level authorization is active (CONNECT/SUBSCRIBE/SEND constraints).
+
+Runtime JWT configuration (`application.yml`):
+- `app.security.jwt.enabled=true`
+- `app.security.jwt.enforce-owner=true`
+- `app.security.jwt.validation-url=http://localhost:8080/api/blueprints`
+- `app.security.jwt.admin-users=""` (optional comma-separated admins)
 
 ---
 

@@ -1,5 +1,15 @@
 server:
-  port: 8080
+  port: 8081
+
+app:
+  websocket:
+    allowed-origins: "http://localhost:5174,http://localhost:5173"
+  security:
+    jwt:
+      enabled: true
+      enforce-owner: true
+      validation-url: "http://localhost:8080/api/blueprints"
+      admin-users: ""
 
 management:
   endpoints:
