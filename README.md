@@ -40,9 +40,9 @@ It integrates with frontend repo: [TerraFour-ECI/arsw-blueprints-api-realtime-so
 
 ```mermaid
 flowchart LR
-  FE[Realtime Frontend :5174] -->|WebSocket STOMP connect| WS[/ws-blueprints]
-  FE -->|SEND /app/draw\n{author,name,point}| MAP[@MessageMapping("/draw")]
-  MAP -->|convertAndSend| TOPIC[/topic/blueprints.author.name]
+  FE[Realtime Frontend 5174] -->|WebSocket STOMP connect| WS[ws blueprints endpoint]
+  FE -->|send app draw with author name point| MAP[message mapping draw]
+  MAP -->|convert and send| TOPIC[topic blueprints author name]
   TOPIC -->|MESSAGE update| FE2[Peer Tab :5174]
   FE -->|CRUD API calls| SEC[Security API :8080]
 
