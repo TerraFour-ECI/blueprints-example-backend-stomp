@@ -1,4 +1,4 @@
-# backend-stomp-spring
+# Stomp Spring Backend for BluePrints P4
 
 Spring Boot 3 + STOMP over WebSocket for BluePrints Realtime collaboration.
 
@@ -36,12 +36,22 @@ It integrates with frontend repo: [TerraFour-ECI/arsw-blueprints-api-realtime-so
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture (Advanced Mermaid)
 
-```text
-React Frontend --(STOMP over WS)--> /ws-blueprints
-React Frontend --(SEND /app/draw)--> @MessageMapping("/draw")
-Spring Broker --(MESSAGE)--> /topic/blueprints.{author}.{name}
+```mermaid
+flowchart LR
+  FE[Realtime Frontend :5174] -->|WebSocket STOMP connect| WS[/ws-blueprints]
+  FE -->|SEND /app/draw\n{author,name,point}| MAP[@MessageMapping("/draw")]
+  MAP -->|convertAndSend| TOPIC[/topic/blueprints.author.name]
+  TOPIC -->|MESSAGE update| FE2[Peer Tab :5174]
+  FE -->|CRUD API calls| SEC[Security API :8080]
+
+  classDef c1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+  classDef c2 fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d;
+  classDef c3 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d;
+  class FE,FE2 c1;
+  class WS,MAP,TOPIC c2;
+  class SEC c3;
 ```
 
 ---
@@ -91,6 +101,20 @@ client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
 - Keep `/app` as application prefix and `/topic` for broker destinations.
 - Allow dev CORS origins (`http://localhost:5174`, and optionally `http://localhost:5173` for login handoff flows).
 - Validate inbound draw payloads before broadcasting.
+
+---
+
+## 📊 Delivery and Rubric Alignment
+
+- **Functionality**: topic-based isolation and live replication validated in two-tab tests.
+- **Technical quality**: clear endpoint contracts and integration instructions.
+- **Observability/DX**: startup and messaging evidence included in screenshots.
+- **Analysis**: STOMP destination model documented with integrated port strategy (`8081` with security API on `8080`).
+
+Security baseline in this flow:
+- Payload validation for inbound draw events.
+- Restricted production origins.
+- Optional JWT-based authorization by topic/blueprint ownership.
 
 ---
 
