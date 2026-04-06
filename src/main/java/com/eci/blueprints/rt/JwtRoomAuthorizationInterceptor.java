@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,6 +65,12 @@ public class JwtRoomAuthorizationInterceptor implements ChannelInterceptor {
       return message;
     }
 
+    try {
+      accessor.setLeaveMutable(true);
+    } catch (IllegalStateException ignored) {
+      // Some tests/builders may provide immutable headers; continue with available mutability.
+    }
+
     if (!jwtEnabled) {
       return message;
     }
@@ -100,7 +107,7 @@ public class JwtRoomAuthorizationInterceptor implements ChannelInterceptor {
       Authentication auth = new UsernamePasswordAuthenticationToken(subject, "n/a", authorities);
       accessor.setUser(auth);
       LOGGER.info("stomp connect authorized user={} admin={}", subject, isAdmin);
-      return message;
+      return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     }
 
     if (StompCommand.SUBSCRIBE.equals(command)) {

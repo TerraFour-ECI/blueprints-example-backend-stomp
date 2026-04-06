@@ -121,6 +121,28 @@ client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
 - **Observability/DX**: startup and messaging evidence included in screenshots.
 - **Analysis**: STOMP destination model documented with integrated port strategy (`8081` with security API on `8080`).
 
+---
+
+## 🧪 Automated JWT Authorization Tests
+
+This backend includes automated tests for JWT authorization and author/topic enforcement.
+
+Test classes:
+- `src/test/java/com/eci/blueprints/rt/JwtRoomAuthorizationInterceptorTest.java`
+- `src/test/java/com/eci/blueprints/rt/BlueprintControllerAuthorizationTest.java`
+
+Covered cases:
+- ✅ Valid JWT on STOMP `CONNECT`.
+- ✅ Invalid JWT rejected during token validation.
+- ✅ Foreign-author topic subscription rejected.
+- ✅ Author-matching and admin-authorized publish behavior verified.
+
+Run tests:
+
+```bash
+mvn clean test
+```
+
 Security baseline in this flow:
 - Payload validation for inbound draw events.
 - Restricted production origins.
