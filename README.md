@@ -21,7 +21,7 @@ This backend enables STOMP-based realtime collaboration by providing:
 - Message mapping for draw events.
 - Topic-based broadcasting by blueprint channel.
 
-It integrates with frontend repo: [DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets](https://github.com/DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets).
+It integrates with frontend repo: [TerraFour-ECI/arsw-blueprints-api-realtime-sockets-lab](https://github.com/TerraFour-ECI/arsw-blueprints-api-realtime-sockets-lab).
 
 ---
 
@@ -60,12 +60,16 @@ For integrated local flows, this service can run on **8081** while CRUD API rema
 
 ## 🧪 Frontend integration
 
-In [DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets](https://github.com/DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets), configure:
+In [TerraFour-ECI/arsw-blueprints-api-realtime-sockets-lab](https://github.com/TerraFour-ECI/arsw-blueprints-api-realtime-sockets-lab), configure:
 
 ```bash
 VITE_API_BASE=http://localhost:8080
 VITE_STOMP_BASE=http://localhost:8081
 ```
+
+Related repositories in the integrated flow:
+- JWT frontend: [TerraFour-ECI/arsw-blueprints-api-react-lab](https://github.com/TerraFour-ECI/arsw-blueprints-api-react-lab) (`5173`)
+- Security backend: [TerraFour-ECI/arsw-blueprints-api-security-lab](https://github.com/TerraFour-ECI/arsw-blueprints-api-security-lab) (`8080`)
 
 Typical client flow:
 
