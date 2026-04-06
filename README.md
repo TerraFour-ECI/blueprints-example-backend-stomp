@@ -1,4 +1,6 @@
-# 📡 STOMP Backend - Final Evidence README
+# backend-stomp-spring
+
+Spring Boot 3 + STOMP over WebSocket for BluePrints Realtime collaboration.
 
 <div align="center">
 
@@ -7,19 +9,19 @@
 ![STOMP](https://img.shields.io/badge/STOMP-Topic_Broadcast-0ea5e9?style=for-the-badge)
 ![Maven](https://img.shields.io/badge/Maven-Verify-c2410c?style=for-the-badge&logo=apachemaven&logoColor=white)
 
-Topic-based realtime backend used by the central P4 frontend.
-
 </div>
 
 ---
 
 ## 🎯 Purpose
 
-This backend handles STOMP/WebSocket collaboration:
+This backend enables STOMP-based realtime collaboration by providing:
 
-- websocket connection endpoint
-- draw event publishing endpoint
-- topic broadcasts for blueprint sessions
+- WebSocket endpoint for STOMP clients.
+- Message mapping for draw events.
+- Topic-based broadcasting by blueprint channel.
+
+It integrates with frontend repo: [DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets](https://github.com/DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets).
 
 ---
 
@@ -27,31 +29,73 @@ This backend handles STOMP/WebSocket collaboration:
 
 - WebSocket endpoint: `/ws-blueprints`
 - Publish destination: `/app/draw`
-- Subscribe topic: `/topic/blueprints.{author}.{name}`
+- Subscribe destination: `/topic/blueprints.{author}.{name}`
+
+**Recommended channel convention**
+- `blueprints.{author}.{name}`
 
 ---
 
-## 🏗️ Architecture (render-safe Mermaid)
+## 🏗️ Architecture
 
-```mermaid
-flowchart LR
-  FE["Realtime Frontend :5174"] -->|"WebSocket STOMP"| WS["Endpoint /ws-blueprints"]
-  FE -->|"SEND /app/draw"| CTRL["MessageMapping draw"]
-  CTRL -->|"convertAndSend"| TOPIC["Topic /topic/blueprints.author.name"]
-  TOPIC -->|"MESSAGE updates"| FE
+```text
+React Frontend --(STOMP over WS)--> /ws-blueprints
+React Frontend --(SEND /app/draw)--> @MessageMapping("/draw")
+Spring Broker --(MESSAGE)--> /topic/blueprints.{author}.{name}
 ```
 
 ---
 
-## ▶️ Run
+## 🚀 Run
 
 ```bash
 mvn spring-boot:run
+# http://localhost:8080
+# WS endpoint: /ws-blueprints
 ```
 
-Default service URL: `http://localhost:8080`
+For integrated local flows, this service can run on **8081** while CRUD API remains on **8080**.
 
-In your integrated flow you can run this backend on `8081` and point the frontend accordingly.
+---
+
+## 🧪 Frontend integration
+
+In [DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets](https://github.com/DECSIS-ECI/Lab_P4_BluePrints_RealTime-Sokets), configure:
+
+```bash
+VITE_API_BASE=http://localhost:8080
+VITE_STOMP_BASE=http://localhost:8081
+```
+
+Typical client flow:
+
+```js
+client.publish({
+  destination: '/app/draw',
+  body: JSON.stringify({ author, name, point: { x, y } })
+})
+
+client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
+  // apply incremental points and repaint canvas
+})
+```
+
+---
+
+## ⚙️ Notes for robust setup
+
+- Keep `/app` as application prefix and `/topic` for broker destinations.
+- Allow dev CORS origins (`http://localhost:5174`, and optionally `http://localhost:5173` for login handoff flows).
+- Validate inbound draw payloads before broadcasting.
+
+---
+
+## 🩺 Troubleshooting
+
+- **No STOMP messages received:** verify destination prefixes and exact topic string.
+- **Connection refused:** confirm the correct port (`8080` default or `8081` integrated flow).
+- **UI updates only locally:** ensure both tabs subscribe to the same author/name topic.
+- **CORS/preflight issues:** check Spring WebSocket and HTTP CORS configuration.
 
 ---
 
@@ -68,12 +112,12 @@ WebSocket/STOMP client connection evidence.
 ![stomp-02-stomp-connect](images/stomp-02-stomp-connect.png)
 
 ### 03 - Topic subscription
-Frontend subscribed to blueprint topic.
+Frontend subscribed to the blueprint topic.
 
 ![stomp-03-topic-subscribe](images/stomp-03-topic-subscribe.png)
 
 ### 04 - Draw SEND frame
-Frontend publish event to `/app/draw`.
+Frontend publishes event to `/app/draw`.
 
 ![stomp-04-draw-send-frame](images/stomp-04-draw-send-frame.png)
 
@@ -82,13 +126,13 @@ Broadcast from backend to subscribers.
 
 ![stomp-05-topic-message-frame](images/stomp-05-topic-message-frame.png)
 
-### 06 - Two-tab sync
-Visual synchronization proof with STOMP mode.
+### 06 - Two-tab synchronization
+Visual synchronization proof in STOMP mode.
 
 ![stomp-06-two-tabs-sync](images/stomp-06-two-tabs-sync.png)
 
 ### 07 - Maven verify pass
-Local build/verification evidence.
+Local build verification evidence.
 
 ![stomp-07-maven-verify-pass](images/stomp-07-maven-verify-pass.png)
 
@@ -96,16 +140,6 @@ Local build/verification evidence.
 CI quality analysis evidence.
 
 ![stomp-08-sonar-pass](images/stomp-08-sonar-pass.png)
-
----
-
-## 🔗 Integration note
-
-Set this in realtime frontend `.env.local`:
-
-```bash
-VITE_STOMP_BASE=http://localhost:8081
-```
 
 ---
 
