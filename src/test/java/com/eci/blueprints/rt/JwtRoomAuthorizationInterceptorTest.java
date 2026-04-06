@@ -11,14 +11,17 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -109,6 +112,103 @@ class JwtRoomAuthorizationInterceptorTest {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
     accessor.setDestination("/topic/blueprints.juan.bp-1");
     accessor.setUser(new UsernamePasswordAuthenticationToken("juan", "n/a"));
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertDoesNotThrow(() -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldBypassChecksWhenJwtIsDisabled() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+    ReflectionTestUtils.setField(interceptor, "jwtEnabled", false);
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, null);
+    assertSame(message, result);
+  }
+
+  @Test
+  void shouldRejectConnectWhenBearerHeaderMissing() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldRejectExpiredTokenOnConnect() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    String header = b64Url("{\"alg\":\"RS256\",\"typ\":\"JWT\"}");
+    long now = Instant.now().getEpochSecond();
+    String payload = b64Url("{\"sub\":\"juan\",\"iat\":" + (now - 400) + ",\"exp\":" + (now - 100) + "}");
+    String token = header + "." + payload + ".valid-signature";
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setNativeHeader("Authorization", "Bearer " + token);
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldRejectSubscribeWithoutPrincipal() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/blueprints.juan.bp-1");
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldIgnoreNonBlueprintDestinationOnSubscribe() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/other.channel");
+    accessor.setUser(new UsernamePasswordAuthenticationToken("juan", "n/a"));
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertSame(message, interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldAllowForeignSubscribeWhenEnforcementDisabled() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+    ReflectionTestUtils.setField(interceptor, "enforceOwner", false);
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/blueprints.maria.bp-1");
+    accessor.setUser(new UsernamePasswordAuthenticationToken("juan", "n/a"));
+    accessor.setLeaveMutable(true);
+    Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertDoesNotThrow(() -> interceptor.preSend(message, null));
+  }
+
+  @Test
+  void shouldAllowAdminSubscribeForForeignAuthor() {
+    JwtRoomAuthorizationInterceptor interceptor = interceptor();
+
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/blueprints.maria.bp-1");
+    accessor.setUser(new UsernamePasswordAuthenticationToken(
+        "admin",
+        "n/a",
+        List.of(new SimpleGrantedAuthority("ROLE_RT_ADMIN"))
+    ));
     accessor.setLeaveMutable(true);
     Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 

@@ -12,6 +12,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.security.Principal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,5 +65,33 @@ class BlueprintControllerAuthorizationTest {
     controller.onDraw(evt, principal);
 
     verify(template, times(1)).convertAndSend(eq("/topic/blueprints.maria.bp-1"), any(Object.class));
+  }
+
+  @Test
+  void shouldRejectInvalidPayload() {
+    Principal principal = new UsernamePasswordAuthenticationToken("juan", "n/a");
+    DrawEvent evt = new DrawEvent("juan", "bp-1", null);
+
+    controller.onDraw(evt, principal);
+
+    verify(template, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
+  void shouldAllowWhenOwnerEnforcementDisabled() {
+    ReflectionTestUtils.setField(controller, "enforceOwner", false);
+    DrawEvent evt = new DrawEvent("maria", "bp-1", new Point(11, 22));
+
+    controller.onDraw(evt, null);
+
+    verify(template, times(1)).convertAndSend(eq("/topic/blueprints.maria.bp-1"), any(Object.class));
+  }
+
+  @Test
+  void shouldReturnSampleBlueprintViaGet() {
+    var response = controller.get("juan", "bp-1");
+    assertEquals("juan", response.author());
+    assertEquals("bp-1", response.name());
+    assertEquals(2, response.points().size());
   }
 }
