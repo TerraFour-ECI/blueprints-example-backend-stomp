@@ -102,6 +102,13 @@ client.subscribe(`/topic/blueprints.${author}.${name}`, (msg) => {
 - Allow dev CORS origins (`http://localhost:5174`, and optionally `http://localhost:5173` for login handoff flows).
 - Validate inbound draw payloads before broadcasting.
 
+### How this was implemented in this repository
+- Draw event processing and topic broadcast live in `BlueprintController.onDraw`.
+- Payload validation was added in `BlueprintController.isValid` to reject malformed events.
+- Observability was added with structured logs for draw receive and topic broadcast.
+- WebSocket CORS is configurable in `WebSocketConfig` using `app.websocket.allowed-origins`.
+- Basic health checks are exposed through Spring Actuator (`/actuator/health`) and port config in `application.yml`.
+
 ---
 
 ## 📊 Delivery and Rubric Alignment
@@ -115,6 +122,12 @@ Security baseline in this flow:
 - Payload validation for inbound draw events.
 - Restricted production origins.
 - Optional JWT-based authorization by topic/blueprint ownership.
+
+Practical status in this implementation:
+- ✅ Topic isolation by `blueprints.{author}.{name}` is active.
+- ✅ Event validation and logging are active.
+- ✅ Health endpoint is available through Actuator.
+- 🔜 JWT topic-level authorization is the next recommended hardening step.
 
 ---
 
